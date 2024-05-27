@@ -100,42 +100,137 @@ def open_gray(GreyImage,kernelsize=3):
     return cv2.erode(cv2.dilate(GreyImage, kernel, iterations = 1),kernel,iterations=1)
 
 
+def dilation_bin(GreyImage,kernelsize=3):
+    GreyImage = cv2.cvtColor(GreyImage, cv2.COLOR_BGR2GRAY)
+    kernel = np.ones((kernelsize,kernelsize), np.uint8)
+    BinImage=threshold_manual(GreyImage)
+    return cv2.morphologyEx(BinImage,cv2.MORPH_DILATE,kernel, iterations = 1)
+
+def erosion_bin(GreyImage,kernelsize=3):
+    GreyImage = cv2.cvtColor(GreyImage, cv2.COLOR_BGR2GRAY)
+    kernel = np.ones((kernelsize,kernelsize), np.uint8)
+    BinImage=threshold_manual(GreyImage)
+    return cv2.morphologyEx(BinImage,cv2.MORPH_ERODE,kernel, iterations = 1)
+
+def open_bin(GreyImage,kernelsize=3):
+    GreyImage = cv2.cvtColor(GreyImage, cv2.COLOR_BGR2GRAY)
+    kernel = np.ones((kernelsize,kernelsize), np.uint8)
+    BinImage=threshold_manual(GreyImage)
+    return cv2.morphologyEx(BinImage,cv2.MORPH_OPEN,kernel, iterations = 1)
+
+def close_bin(GreyImage,kernelsize=3):
+    GreyImage = cv2.cvtColor(GreyImage, cv2.COLOR_BGR2GRAY)
+    kernel = np.ones((kernelsize,kernelsize), np.uint8)
+    BinImage=threshold_manual(GreyImage)
+    return cv2.morphologyEx(BinImage,cv2.MORPH_CLOSE,kernel, iterations = 1)
+
+def DistanceTransform(GreyImage):
+    GreyImage = cv2.cvtColor(GreyImage, cv2.COLOR_BGR2GRAY)
+    BinImage=threshold_manual(GreyImage)
+    ans=cv2.distanceTransform(BinImage,cv2.DIST_L2,maskSize=3)
+    return cv2.convertScaleAbs(ans)
+
+def skeleton(GreyImage):
+    GreyImage = cv2.cvtColor(GreyImage, cv2.COLOR_BGR2GRAY)
+    BinImage=threshold_manual(GreyImage)
+    input_rows, input_cols = BinImage.shape
+    expand=np.zeros([input_rows+2,input_cols+2])
+    ans=np.zeros([input_rows+2,input_cols+2])
+    expand[1:input_rows+1,1:input_cols+1]=BinImage
+    kernel = np.ones((3,3), np.uint8)
+    dis=0
+    while np.sum(expand)>0:
+        dis=dis+1
+        ans=ans+(expand-cv2.morphologyEx(expand,cv2.MORPH_OPEN,kernel, iterations = 1))//255*dis
+        expand=cv2.morphologyEx(expand,cv2.MORPH_ERODE,kernel, iterations = 1)
+    return cv2.convertScaleAbs(ans[1:input_rows+1,1:input_cols+1])
+
+def skeleton_recover(GreyImage):
+    GreyImage = cv2.cvtColor(GreyImage, cv2.COLOR_BGR2GRAY)
+    ans=np.zeros(GreyImage.shape)
+
+    for i in range(1,1+np.max(GreyImage[:,:])):
+        kernelsize=i*2+1
+        kernel = np.ones((kernelsize,kernelsize), np.uint8)
+        tmp=np.zeros(GreyImage.shape)
+        tmp[GreyImage==i]=255
+        ans=ans+cv2.morphologyEx(tmp,cv2.MORPH_DILATE,kernel, iterations = 1)
+    ans[ans>0]=255
+    return ans.astype(int)
+
+
 '''
+too slow
 
-def dilation_bin(binImage,SE=np.array([[1,1,1],[1,1,1],[1,1,1]],dtype=np.int8)):
+def dilation_bin(BinImage,kernelsize=3):
+    BinImage=cv2.cvtColor(BinImage, cv2.COLOR_BGR2GRAY)
+    BinImage=threshold_manual(BinImage,threshold_value=127)
+    kernel = np.ones((kernelsize,kernelsize), np.uint8)
+    input_rows, input_cols = BinImage.shape
+    ans=np.zeros([input_rows + kernelsize - 1,input_cols + kernelsize - 1])
+    for i in range(kernelsize):
+        for j in range(kernelsize):
+            if kernel[i,j]:
+                ans[i:i+input_rows,j:j+input_cols]=ans[i:i+input_rows,j:j+input_cols]+BinImage
+    ans[ans>1]=255
+    half=kernelsize//2
+    return ans[half:half+input_rows,half:half+input_cols]
 
-    input_rows, input_cols = binImage.shape
-    kernel_rows, kernel_cols = SE.shape
 
-    ans=np.zeros([input_rows + kernel_rows - 1,input_cols + kernel_cols - 1])
-    for i in range(kernel_rows):
-        for j in range(kernel_cols):
-            ans[i:i+input_rows,j:j+input_cols]=ans[i:i+input_rows,j:j+input_cols]+binImage
-    ans[ans>1]=1
-    return ans
+def erosion_bin(BinImage,kernelsize=3):
+    BinImage=cv2.cvtColor(BinImage, cv2.COLOR_BGR2GRAY)
+    BinImage=threshold_manual(BinImage,threshold_value=127)
+    kernel = np.ones((kernelsize,kernelsize), np.uint8)
+    input_rows, input_cols = BinImage.shape
+    expanded=np.zeros((input_rows+kernelsize-1,input_cols+kernelsize-1),np.uint8)
+    ans=np.zeros((input_rows,input_cols),np.uint8)
+    half=kernelsize//2
+    expanded[half:half+input_rows,half:half+input_cols]=BinImage
+    for i in range(input_rows):
+        for j in range(input_cols):
+            fitpatch=expanded[i:i+kernelsize,j:j+kernelsize]
+            fitpatch[fitpatch>1]=1
+            tmp=fitpatch+kernel
+            tmp[tmp>1]=1
+            if np.array_equal(fitpatch,tmp):
+                ans[i,j]=255
+    return  ans
 
-def erosion_bin(binImage,SE=np.array([[1,1,1],[1,1,1],[1,1,1]],dtype=np.int8)):
-    input_rows, input_cols = binImage.shape
-    kernel_rows, kernel_cols = SE.shape
-    if (input_rows<kernel_rows or input_cols<kernel_cols):
-        return binImage
-    ans=np.zeros([input_rows - kernel_rows + 1,input_cols - kernel_cols + 1])
-    for i in range(input_rows - kernel_rows + 1):
-        for j in range(input_cols - kernel_cols + 1):
-            fitpatch=binImage[i:i+kernel_rows,j:j+kernel_cols]
-            tmp=fitpatch+SE
+def close_bin(BinImage,kernelsize=3):
+    step1=erosion_bin(BinImage,kernelsize)
+
+    kernel = np.ones((kernelsize,kernelsize), np.uint8)
+    input_rows, input_cols = step1.shape
+    ans=np.zeros([input_rows + kernelsize - 1,input_cols + kernelsize - 1])
+    for i in range(kernelsize):
+        for j in range(kernelsize):
+            if kernel[i,j]:
+                ans[i:i+input_rows,j:j+input_cols]=ans[i:i+input_rows,j:j+input_cols]+BinImage
+    ans[ans>1]=255
+    half=kernelsize//2
+    return ans[half:half+input_rows,half:half+input_cols]
+
+
+def open_bin(BinImage,kernelsize=3):
+    step1=dilation_bin(BinImage,kernelsize)
+    kernel = np.ones((kernelsize,kernelsize), np.uint8)
+    input_rows, input_cols = step1.shape
+    expanded=np.zeros((input_rows+kernelsize-1,input_cols+kernelsize-1),np.uint8)
+    ans=np.zeros((input_rows,input_cols),np.uint8)
+    half=kernelsize//2
+    expanded[half:half+input_rows,half:half+input_cols]=step1
+    for i in range(input_rows):
+        for j in range(input_cols):
+            fitpatch=expanded[i:i+kernelsize,j:j+kernelsize]
+            tmp=fitpatch+kernel
             tmp[tmp>1]=1
             if fitpatch==tmp:
-                ans[i,j]=1
-    return
+                ans[i,j]=255
+    return  ans
+'''
 
-def close_bin(binImage,SE=np.array([[1,1,1],[1,1,1],[1,1,1]],dtype=np.int8)):
-    return(dilation_bin(erosion_bin(binImage,SE),SE))
-
-def open_bin(binImage,SE=np.array([[1,1,1],[1,1,1],[1,1,1]],dtype=np.int8)):
-    return(erosion_bin(dilation_bin(binImage,SE),SE))
 
 def Distance_Transform(binImage,SE=np.array([[1,1,1],[1,1,1],[1,1,1]],dtype=np.int8),startpoint=np.array([0,0],dtype=np.int8)):
     pass
 
-'''
+

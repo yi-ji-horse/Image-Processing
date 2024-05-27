@@ -13,7 +13,7 @@ with gr.Blocks() as page1:
         output_image2=gr.Image()
         output_image3=gr.Image()
     with gr.Row():
-        threshold= gr.Slider(minimum=0, maximum=255, default=127, label="Threshold")
+        threshold= gr.Slider(minimum=0, maximum=255, value=127, label="Threshold")
         with gr.Row():
             btn0=gr.Button('grey image')
             btn1=gr.Button('histogram')
@@ -47,7 +47,7 @@ with gr.Blocks() as page3:
         input_image=gr.Image()
         output_image=gr.Image()
     with gr.Row():
-        kernelsize=gr.Slider(minimum=1,maximum=20,default=3,label="kernel size",step=1)
+        kernelsize=gr.Slider(minimum=1,maximum=20,value=3,label="kernel size",step=1)
         btn0=gr.Button('set output as input')
         btn1=gr.Button('dilation')
         btn2=gr.Button('erosion')
@@ -71,16 +71,34 @@ with gr.Blocks() as page5:
         input_image=gr.Image()
         output_image=gr.Image()
     with gr.Row():
-        kernelsize=gr.Slider(minimum=1,maximum=20,default=2,label="kernel size")
+        kernelsize=gr.Slider(minimum=1,maximum=20,value=3,label="kernel size",step=1)
         btn0=gr.Button('set output as input')
         btn1=gr.Button('dilation')
         btn2=gr.Button('erosion')
         btn3=gr.Button('opening')
         btn4=gr.Button('closing')
+    btn0.click(fn=lambda x:x,inputs=output_image,outputs=input_image)
+    btn1.click(fn=image_function.dilation_bin,inputs=[input_image,kernelsize],outputs=output_image)
+    btn2.click(fn=image_function.erosion_bin,inputs=[input_image,kernelsize],outputs=output_image)
+    btn3.click(fn=image_function.open_bin,inputs=[input_image,kernelsize],outputs=output_image)
+    btn4.click(fn=image_function.close_bin,inputs=[input_image,kernelsize],outputs=output_image)
 page5.title="dilation,erosion,opening and closing operations in binagry scale "
 
 with gr.Blocks() as page6:
     gr.Markdown("""# Morphological distance transform,skeleton and skeleton restoration""")
+    with gr.Row():
+        input_image=gr.Image(label='input bin image')
+        output_image=gr.Image(label='distance transform')
+    with gr.Row():
+        output_image2=gr.Image(label='skeleton')
+        output_image3=gr.Image(label='img recovered from skeleton')
+    with gr.Row():
+        btn0=gr.Button('distance transform')
+        btn1=gr.Button('generate skeleton')
+        btn2=gr.Button('recovered from skeleton')
+    btn0.click(fn=image_function.DistanceTransform,inputs=input_image,outputs=output_image)
+    btn1.click(fn=image_function.skeleton,inputs=input_image,outputs=output_image2)
+    btn2.click(fn=image_function.skeleton_recover,inputs=output_image2,outputs=output_image3)
 page6.title="Morphological distance transform,skeleton and skeleton restoration"
 
 
