@@ -32,12 +32,12 @@ with gr.Blocks() as page2:
         output_image=gr.Image()
     with gr.Row():
         with gr.Column():
-            operator1=gr.Dropdown(["roberts1",'roberts2','prewitt1',"prewitt2","sobel1","sobel2"],value='roberts1',info='fillters for edge detection',label='edge detection')
+            operator1=gr.Dropdown(["roberts",'prewitt',"sobel"],value='roberts',info='fillters for edge detection',label='edge detection')
             btn1=gr.Button("process")
         with gr.Column():
             operator2=gr.Dropdown(["gaussian","median"],value='gaussian',info='fillters for noise reduction',label='noise reduction')
             btn2=gr.Button("process")
-    btn1.click(fn=image_function.convolutionAndImageFilters,inputs=[input_image,operator1],outputs=output_image)
+    btn1.click(fn=image_function.convolutionAndImageFilters2,inputs=[input_image,operator1],outputs=output_image)
     btn2.click(fn=image_function.convolutionAndImageFilters,inputs=[input_image,operator2],outputs=output_image)
 page2.title="Convolution and Image Filters"
 
@@ -62,6 +62,19 @@ page3.title="dilation,erosion,opening and closing operations in grayscale"
 
 with gr.Blocks() as page4:
     gr.Markdown("""# Morphological edge detection,reconstruction and gradient""")
+    with gr.Row():
+        input_image=gr.Image(tool='sketch')
+        output_image=gr.Image()
+    with gr.Row():
+        btn0=gr.Button('Morphological edge detection')
+        btn1=gr.Button("Morphological gradient")
+    with gr.Row():
+        btn2=gr.Button("conditional dilation in binary image")
+        btn3=gr.Button("Gray scale reconstruction")
+    btn0.click(fn=image_function.MorphologicalEdgeDetection,inputs=input_image,outputs=output_image)
+    btn1.click(fn=image_function.MorphologiclGradient,inputs=input_image,outputs=output_image)
+    btn2.click(fn=image_function.ConditionalDilation,inputs=input_image,outputs=output_image)
+    btn3.click(fn=image_function.GrayScaleReconstruction,inputs=input_image,outputs=output_image)
 page4.title="Morphological edge detection,reconstruction and gradient"
 
 
@@ -96,6 +109,7 @@ with gr.Blocks() as page6:
         btn0=gr.Button('distance transform')
         btn1=gr.Button('generate skeleton')
         btn2=gr.Button('recovered from skeleton')
+
     btn0.click(fn=image_function.DistanceTransform,inputs=input_image,outputs=output_image)
     btn1.click(fn=image_function.skeleton,inputs=input_image,outputs=output_image2)
     btn2.click(fn=image_function.skeleton_recover,inputs=output_image2,outputs=output_image3)

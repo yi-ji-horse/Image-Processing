@@ -79,6 +79,54 @@ def convolutionAndImageFilters(GreyImage,operator='roberts1'):
     convolved_image = cv2.filter2D(GreyImage, -1, kernel)
     return Image.fromarray(convolved_image)
 
+def convolutionAndImageFilters2(GreyImage,operator='roberts'):
+    kernels = {
+        "roberts1": np.array([
+            [-1,  0],
+            [0,  1]
+        ], dtype=np.float32),
+        "roberts2": np.array([
+            [0,  -1],
+            [1,  0]
+        ], dtype=np.float32),
+        "prewitt1": np.array([
+            [-1, 0, 1],
+            [-1, 0, 1],
+            [-1, 0, 1]
+        ], dtype=np.float32),
+        "prewitt2": np.array([
+            [-1, -1, -1],
+            [0, 0, 0],
+            [1, 1, 1]
+        ], dtype=np.float32),
+        "sobel1": np.array([
+            [-1, 0, 1],
+            [-2, 0, 2],
+            [-1, 0, 1]
+        ], dtype=np.float32),
+        "sobel2": np.array([
+            [-1, -2, -1],
+            [0, 0, 0],
+            [1, 2, 1]
+        ], dtype=np.float32),
+        "gaussian": np.array([
+            [1, 2, 1],
+            [2, 4, 2],
+            [1, 2, 1]
+        ], dtype=np.float32)/16,
+        "median": np.array([
+            [1, 2, 1],
+            [2, 4, 2],
+            [1, 2, 1]
+        ], dtype=np.float32)/16
+    }
+    kernel1 = kernels.get(operator+'1')
+    kernel2 = kernels.get(operator+'2')
+    convolved_image1 = cv2.filter2D(GreyImage, -1, kernel1)
+    convolved_image2 = cv2.filter2D(GreyImage, -1, kernel2)
+
+    return np.array((np.array(convolved_image1)+np.array(convolved_image2))/2,dtype='uint8')
+
 def dilation_gray(GreyImage,kernelsize=3):
     GreyImage = cv2.cvtColor(GreyImage, cv2.COLOR_BGR2GRAY)
     kernel = np.ones((kernelsize,kernelsize), np.uint8)
@@ -158,6 +206,56 @@ def skeleton_recover(GreyImage):
     ans[ans>0]=255
     return ans.astype(int)
 
+def MorphologicalEdgeDetection(Image):
+    if type(Image)==dict:
+        GreyImage=Image['image']
+    kernelsize=3
+    GreyImage = cv2.cvtColor(GreyImage, cv2.COLOR_BGR2GRAY)
+    kernel = np.ones((kernelsize,kernelsize), np.uint8)
+    BinImage=threshold_manual(GreyImage)
+    return cv2.morphologyEx(BinImage,cv2.MORPH_DILATE,kernel, iterations = 1)-cv2.morphologyEx(BinImage,cv2.MORPH_ERODE,kernel,iterations=1)
+
+def MorphologiclGradient(Image):
+    if type(Image)==dict:
+        GreyImage=Image['image']
+    kernelsize=3
+    GreyImage = cv2.cvtColor(GreyImage, cv2.COLOR_BGR2GRAY)
+    kernel = np.ones((kernelsize,kernelsize), np.uint8)
+    return (cv2.dilate(GreyImage, kernel, iterations = 1)-cv2.erode(GreyImage,kernel,iterations=1))//2
+
+def ConditionalDilation(Image):
+    if type(Image)==dict:
+        GreyImage=Image['image']
+        Mask=Image['mask'][:,:,1]
+    GreyImage = cv2.cvtColor(GreyImage, cv2.COLOR_BGR2GRAY)
+    kernelsize=3
+    kernel = np.ones((kernelsize,kernelsize), np.uint8)
+    BinImage=threshold_manual(GreyImage)
+    
+    tmp=cv2.dilate(BinImage,kernel,iterations=1)
+    tmp[Mask==0]=0
+    tmp1=np.zeros(BinImage.shape)
+    while not np.array_equal(tmp,tmp1):
+        tmp1=tmp
+        tmp=cv2.dilate(tmp1,kernel,iterations=1)
+        tmp[Mask==0]=0
+    return tmp
+    
+def GrayScaleReconstruction(Image):
+    if type(Image)==dict:
+        GreyImage=Image['image']
+        Mask=Image['mask']
+    GreyImage = cv2.cvtColor(GreyImage, cv2.COLOR_BGR2GRAY)
+    tmp=Mask[:,:,1]
+    tmp1=np.zeros(GreyImage.shape)
+
+    kernelsize=3
+    kernel = np.ones((kernelsize,kernelsize), np.uint8)
+    while not np.array_equal(tmp,tmp1):
+        tmp1=tmp
+        tmp=cv2.dilate(tmp1,kernel,iterations=1)
+        tmp[tmp>GreyImage]=GreyImage[tmp>GreyImage]
+    return tmp
 
 '''
 too slow
